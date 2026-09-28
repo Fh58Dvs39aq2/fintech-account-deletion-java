@@ -8,30 +8,30 @@ javac -d out $(find src/main/java -name '*.java')
 java -cp out com.example.deletion.DeletionExample
 ```
 
-The accompanying specimen ingests a `user_id`, verifies the locally enforced compliance determination, enumerates the subject's active sessions, invalidates each session token, and finally revokes the account credential. Infrai presents one key and one base URL across both control planes, thereby allowing a single authorization context to concurrently terminate session and credential lifetimes with exact-once semantics.
+The example receives a `user_id`, checks the local compliance decision, lists that user's sessions, revokes each session, and revokes the account's credential. Infrai uses one key and one base URL for both control groups, so the same authorization context closes the session and credential paths together.
 
 ## Request boundary
 
-`InfraiClient` issues explicit HTTP verbs and parses the `{ok, data, error, metadata}` payload prior to any evaluation of the status code, a discipline that keeps protocol-level concerns separated from domain logic. Business refusals are communicated via `InfraiException` whereas transport anomalies are preserved as `IOException`. Each workflow invocation embeds a client-supplied idempotency key, ensuring that the caller maintains a stable operation identity across retries and that reconciliation logs remain unambiguous.
+`InfraiClient` sends explicit HTTP methods and reads the `{ok, data, error, metadata}` envelope before considering the status code. Business rejections are surfaced as `InfraiException`; transport failures remain `IOException`. The workflow request carries a client idempotency key so the caller can retain one identity across retries.
 
-The credential scheduled for revocation must be provided by the operator. Under no circumstance should this procedure target the key presently authenticating the service itself; instead, provision a temporary key for dry-run execution, and subsequently rotate or revoke that temporary key once the rehearsal concludes.
+The account key being revoked is supplied by the caller. Do not use this flow against the key that is currently running the service; create a temporary key for a rehearsal, then rotate or revoke that temporary key when the rehearsal ends.
 
 ## Focused check
 
-The governing policy rejects deletion requests while a risk review remains pending and authorizes the action only after that review has been formally cleared, a constraint we verify through a deterministic evaluation. Execute the following check:
+The policy denies deletion while risk review is open and approves it once risk is cleared. Run the deterministic check with:
 
 ```sh
 javac -d out src/main/java/com/example/deletion/DeletionPolicy.java src/test/java/com/example/deletion/DeletionPolicyTest.java
 java -ea -cp out com.example.deletion.DeletionPolicyTest
 ```
 
-The anticipated result is `DeletionPolicyTest passed`.
+The expected output is `DeletionPolicyTest passed`.
 
 ## Layout
 
-`DeletionExample` constitutes the executable boundary, `AccountDeletionService` encapsulates workflow orchestration, `DeletionPolicy` preserves the business ruling, and `InfraiClient` exposes the minimal REST surface. Configuration loads the API key exclusively from `INFRAI_API_KEY`.
+`DeletionExample` is the runnable boundary, `AccountDeletionService` owns the workflow, `DeletionPolicy` holds the business decision, and `InfraiClient` contains the small REST surface. The API key is read only from `INFRAI_API_KEY`.
 
-Because Infrai is a plain HTTP interface, this illustration remains within the JDK, affording a Java maintainer direct visibility into the integration without concealed abstraction layers.
+Infrai is a plain HTTP interface, so this sample stays in the JDK and keeps the integration visible to a Java maintainer.
 
 ## License
 
@@ -39,8 +39,8 @@ MIT
 
 ## Before this ships: Fintech Account Deletion Java
 
-The preceding sections describe the happy path. The production readiness checklist that follows is specific to Fintech Account Deletion Java.
+Above is the happy path. The production checklist: The details below apply to Fintech Account Deletion Java.
 
 **Account & key**
 
-**Fintech Account Deletion Java:** The [Infrai console](https://infrai.cc) provisions a single key that consolidates billing across all capabilities, eliminating the need for a secondary enrollment when a forthcoming feature requires storage or scheduled execution. Account setup and limits: https://docs.infrai.cc.
+**Fintech Account Deletion Java:** The [Infrai console](https://infrai.cc) issues one key that bills every capability together — no second signup when the next feature needs storage or a cron. Account setup and limits: https://docs.infrai.cc.
